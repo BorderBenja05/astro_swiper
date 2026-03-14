@@ -1,26 +1,20 @@
-#!/usr/bin/env python3
-"""astro_swiper_web.py
-
-Importable web-based FITS triplet classifier.
+"""web.py — AstroSwiper: web-based FITS triplet classifier.
 
 Usage as a module:
-    from astro_swiper_web import AstroSwiper
+    from astro_swiper import AstroSwiper
     AstroSwiper('config.yaml').run()
 
-Usage from the command line:
-    python astro_swiper_web.py [config.yaml]
-
-Install deps (if needed):
-    pip install flask flask-socketio astropy matplotlib numpy pyyaml
+Also accepts a pre-loaded dict instead of a path:
+    AstroSwiper({'input_dir': '...', 'keybinds': {...}, ...}).run()
 """
 
-import argparse, os
+import os
 import yaml
 from flask import Flask, render_template_string, request, send_file
 from flask_socketio import SocketIO, emit
 
-from storage import make_backend
-from classifier import TripletClassifier
+from astro_swiper.storage import make_backend
+from astro_swiper.classifier import TripletClassifier
 
 # ---------------------------------------------------------------------------
 # Browser UI
@@ -121,7 +115,7 @@ class AstroSwiper:
     Web-based FITS triplet classifier.
 
     Usage:
-        from astro_swiper_web import AstroSwiper
+        from astro_swiper import AstroSwiper
         AstroSwiper('config.yaml').run()
 
     Also accepts a pre-loaded dict instead of a path:
@@ -205,13 +199,3 @@ class AstroSwiper:
             self._app, host='127.0.0.1', port=self._port,
             debug=False, use_reloader=False, allow_unsafe_werkzeug=True,
         )
-
-# ---------------------------------------------------------------------------
-# CLI entry point
-# ---------------------------------------------------------------------------
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Astro Swiper — web-based FITS triplet classifier')
-    parser.add_argument('config', nargs='?', default='config.yaml',
-                        help='Path to YAML config file (default: config.yaml)')
-    AstroSwiper(parser.parse_args().config).run()

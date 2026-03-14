@@ -6,32 +6,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Astro Swiper is a Python web application for interactive classification of astronomical FITS image triplets. Users view science/difference/reference image triplets in a browser and classify them via keyboard shortcuts.
 
-## Running the Application
+## Installation & Running
 
 ```bash
-# Install dependencies
-pip install flask flask-socketio astropy matplotlib numpy pyyaml
+# Install (editable / development)
+pip install -e .
 
-# Run with default config.yaml
-python astro_swiper_web.py
+# Run via CLI entry point
+astro-swiper                  # uses config.yaml in cwd
+astro-swiper my_cfg.yaml      # explicit config path
 
-# Run with explicit config path
-python astro_swiper_web.py my_cfg.yaml
+# Or as a Python import
+from astro_swiper import AstroSwiper
+AstroSwiper('config.yaml').run()
 
-# Open in browser
-# http://localhost:5000
+# Open in browser: http://localhost:5000
 # Over SSH: ssh -L 5000:localhost:5000 user@host
+```
+
+## Package Structure
+
+```
+astro_swiper/          # installable package
+├── __init__.py        # re-exports AstroSwiper
+├── web.py             # Flask-SocketIO server + embedded HTML/JS UI + AstroSwiper class
+├── classifier.py      # TripletClassifier: FITS I/O, rendering, key handling
+├── storage.py         # StorageBackend ABC + SQLite/CSV/Txt implementations
+├── _cli.py            # CLI entry point (astro-swiper command)
+└── imgs/
+    └── background.png
+pyproject.toml         # build config, dependencies, entry points
+setup.py               # minimal shim for legacy tools
 ```
 
 ## Architecture
 
 Three-module design with clear separation of concerns:
 
-- **`astro_swiper_web.py`** — Flask-SocketIO server + embedded HTML/JS UI. Defines the `AstroSwiper` public API class. Handles HTTP routes and WebSocket events (`connect`, `keypress`). Entry point for CLI usage.
+- **`astro_swiper/web.py`** — Flask-SocketIO server + embedded HTML/JS UI. Defines the `AstroSwiper` public API class. Handles HTTP routes and WebSocket events (`connect`, `keypress`).
 
-- **`classifier.py`** — `TripletClassifier` class. Loads FITS triplets using astropy's Z-scale normalization, renders them with matplotlib to base64 PNG, handles all keyboard events, manages navigation, and prefetches the next image in a daemon thread. Uses `threading.Lock` to protect shared state.
+- **`astro_swiper/classifier.py`** — `TripletClassifier` class. Loads FITS triplets using astropy's Z-scale normalization, renders them with matplotlib to base64 PNG, handles all keyboard events, manages navigation, and prefetches the next image in a daemon thread. Uses `threading.Lock` to protect shared state.
 
-- **`storage.py`** — Pluggable storage via `StorageBackend` abstract base class. Three backends: `SQLiteBackend` (recommended), `CSVBackend`, `TxtBackend` (legacy). `make_backend()` factory instantiates from config.
+- **`astro_swiper/storage.py`** — Pluggable storage via `StorageBackend` abstract base class. Three backends: `SQLiteBackend` (recommended), `CSVBackend`, `TxtBackend` (legacy). `make_backend()` factory instantiates from config.
 
 ## Data Flow
 
