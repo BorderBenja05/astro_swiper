@@ -1,0 +1,60 @@
+input_dir: /home/borderbenja/2026-03-01/
+
+back_button: up
+port: 5000
+
+# resume: true  → skip already-classified triplets on startup
+# overwrite: true → wipe all saved classifications and start fresh
+resume: true
+overwrite: false
+
+# ---------------------------------------------------------------------------
+# Storage backend — choose one block and comment out the others
+# ---------------------------------------------------------------------------
+
+# SQLite (recommended): single file, atomic writes, queryable with pandas
+storage:
+  backend: sqlite
+  db: training_sets/classifications.db
+
+# CSV: single file, human-readable, easy to open in Excel / pandas
+# storage:
+#   backend: csv
+#   file: training_sets/classifications.csv
+
+# Txt: original format, one file per category
+# storage:
+#   backend: txt
+#   already_classified: training_sets/already_classified.txt
+
+# ---------------------------------------------------------------------------
+# Keybinds
+# ---------------------------------------------------------------------------
+# For sqlite and csv backends: values are the label strings stored in the DB/CSV.
+# For txt backend: values are the output file paths.
+# Quote numeric keys so YAML doesn't parse them as integers.
+
+keybinds:
+  a: noise
+  c: skips
+  d: dots
+  e: streaks
+  v: badsubs
+  w: wide
+  x: dipoles
+  '1': small
+  '2': medium
+  '8': large
+
+# --- txt backend example ---
+# keybinds:
+#   a: training_sets/noise.txt
+#   c: training_sets/skips.txt
+#   d: training_sets/dots.txt
+#   e: training_sets/streaks.txt
+#   v: training_sets/badsubs.txt
+#   w: training_sets/wide.txt
+#   x: training_sets/dipoles.txt
+#   '1': training_sets/small.txt
+#   '2': training_sets/medium.txt
+#   '8': training_sets/large.txt
