@@ -8,8 +8,8 @@ Also accepts a pre-loaded dict instead of a path:
     AstroSwiper({'input_dir': '...', 'keybinds': {...}, ...}).run()
 """
 
-import os
 import yaml
+from pathlib import Path
 from flask import Flask, render_template_string, request, send_file
 from flask_socketio import SocketIO, emit
 
@@ -135,7 +135,7 @@ class AstroSwiper:
     """
 
     def __init__(self, config, triplet_loader=None):
-        if isinstance(config, str):
+        if isinstance(config, (str, Path)):
             with open(config) as f:
                 cfg = yaml.safe_load(f)
         else:
@@ -175,14 +175,14 @@ class AstroSwiper:
         @app.route('/background')
         def background():
             return send_file(
-                os.path.join(os.path.dirname(__file__), 'imgs', 'background.png'),
+                Path(__file__).parent / 'imgs' / 'background.png',
                 mimetype='image/png',
             )
 
         @sio.on('connect')
         def on_connect():
             kb_list = [
-                (k, os.path.splitext(os.path.basename(v))[0])
+                (k, Path(v).stem)
                 for k, v in clf.keybinds.items()
             ]
             kb_list.append((clf.back_button, 'back'))

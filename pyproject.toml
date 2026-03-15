@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astro-swiper"
-version = "0.1.0"
+version = "0.1.2"
 description = "Web-based interactive FITS triplet classifier for astronomical image labelling"
 readme = "USAGE.md"
 license = { text = "MIT" }
@@ -16,6 +16,7 @@ dependencies = [
     "matplotlib>=3.5",
     "numpy>=1.21",
     "pyyaml>=6.0",
+    "tqdm>=4.0",
 ]
 
 [project.scripts]
@@ -26,4 +27,4 @@ where = ["."]
 include = ["astro_swiper*"]
 
 [tool.setuptools.package-data]
-astro_swiper = ["imgs/*.png"]
+astro_swiper = ["imgs/*.png", "default_config.yaml"]

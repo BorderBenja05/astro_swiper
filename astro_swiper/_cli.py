@@ -1,7 +1,14 @@
 """CLI entry point for astro-swiper."""
 
+import sys
 import argparse
+from pathlib import Path
+
+import yaml
+
 from astro_swiper.web import AstroSwiper
+
+DEFAULT_CONFIG = Path(__file__).parent / 'default_config.yaml'
 
 
 def main():
@@ -9,7 +16,28 @@ def main():
         description='Astro Swiper — web-based FITS triplet classifier'
     )
     parser.add_argument(
-        'config', nargs='?', default='config.yaml',
-        help='Path to YAML config file (default: config.yaml)',
+        'input_dir', nargs='?', default=None,
+        help='Path to directory containing FITS triplets',
     )
-    AstroSwiper(parser.parse_args().config).run()
+    parser.add_argument(
+        '-config', default='config.yaml', metavar='PATH',
+        help='Path to YAML config file (default: config.yaml in cwd)',
+    )
+    parser.add_argument(
+        '--print-config', action='store_true',
+        help='Print the path to the bundled default config template and exit',
+    )
+
+    args = parser.parse_args()
+
+    if args.print_config:
+        print(DEFAULT_CONFIG)
+        sys.exit(0)
+
+    with open(args.config) as f:
+        cfg = yaml.safe_load(f)
+
+    if args.input_dir is not None:
+        cfg['input_dir'] = str(Path(args.input_dir).resolve())
+
+    AstroSwiper(cfg).run()

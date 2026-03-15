@@ -1,0 +1,33 @@
+input_dir: /path/to/fits/triplets
+
+back_button: up
+port: 5000
+
+resume: true
+overwrite: false
+
+storage:
+  backend: sqlite
+  db: training_sets/classifications.db
+
+# CSV backend:
+# storage:
+#   backend: csv
+#   file: training_sets/classifications.csv
+
+# Txt backend (keybind values must be file paths):
+# storage:
+#   backend: txt
+#   already_classified: training_sets/already_classified.txt
+
+keybinds:
+  a: noise
+  c: skips
+  d: dots
+  e: streaks
+  v: badsubs
+  w: wide
+  x: dipoles
+  '1': small
+  '2': medium
+  '8': large

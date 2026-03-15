@@ -1,6 +1,9 @@
 """classifier.py — TripletClassifier: FITS loading, rendering, and key handling."""
 
 import os, io, base64, gzip, shutil, tempfile, threading
+from pathlib import Path
+
+from tqdm import tqdm
 
 import numpy as np
 from astropy.io import fits
@@ -43,16 +46,17 @@ class TripletClassifier:
     # ── FITS I/O ──────────────────────────────────────────────────────────────
 
     def _load_fits(self, path):
-        if path.endswith('.fits.gz'):
+        path = Path(path)
+        if path.suffix == '.gz':
             with gzip.open(path, 'rb') as f_in:
                 with tempfile.NamedTemporaryFile(suffix='.fits', delete=False) as f_out:
                     shutil.copyfileobj(f_in, f_out)
-                    tmp = f_out.name
+                    tmp = Path(f_out.name)
             try:
                 with fits.open(tmp) as h:
                     return np.nan_to_num(h[0].data)
             finally:
-                os.unlink(tmp)
+                tmp.unlink()
         with fits.open(path) as h:
             return np.nan_to_num(h[0].data)
 
@@ -128,7 +132,7 @@ class TripletClassifier:
         triplet = self.triplets[self.index]
         payload = {
             'image':    self._get_b64(),
-            'filename': os.path.basename(triplet[1]),
+            'filename': Path(triplet[1]).name,
             'progress': f'{self.index + 1} / {len(self.triplets)}',
         }
         self._socketio.emit('update', payload, to=to) if to else \
@@ -173,7 +177,7 @@ class TripletClassifier:
         label = self.keybinds[key]
         self._storage.save(sub, sci, ref, key, label)
         self.pre_classified.add(sci)
-        print(f"[{self.index + 1}/{len(self.triplets)}] {os.path.basename(sci)} → {label}")
+        print(f"[{self.index + 1}/{len(self.triplets)}] {Path(sci).name} → {label}")
         self.index += 1
         self._skip_classified()
 
@@ -189,7 +193,7 @@ class TripletClassifier:
                 break
         else:
             self.index = max(0, self.index - 1)
-        print(f"Undid: {os.path.basename(last_sci)}")
+        print(f"Undid: {Path(last_sci).name}")
 
     # ── Setup ─────────────────────────────────────────────────────────────────
 
@@ -197,22 +201,27 @@ class TripletClassifier:
         if triplet_loader is not None:
             triplets = list(triplet_loader(directory_path))
         else:
-            all_files = [
-                os.path.join(directory_path, fn)
-                for fn in os.listdir(directory_path)
-                if os.path.isfile(os.path.join(directory_path, fn))
-            ]
+            directory_path = Path(directory_path)
+            print(f'Finding all files in {directory_path}...\n'
+                  f'This may take a minute or two depending on network speed and number of files.', flush=True)
+            with os.scandir(directory_path) as it:
+                entries = list(it)
+            names = {e.name for e in tqdm(entries, desc='Building file index') if e.is_file()}
             triplets = []
             for sci_sfx, sub_sfx, ref_sfx in [
                 ('scicutout.fits.gz', 'subcutout.fits.gz', 'refcutout.fits.gz'),
                 ('scicutout.fits',    'subcutout.fits',    'refcutout.fits'),
             ]:
-                for f in all_files:
-                    if f.endswith(sci_sfx):
-                        base    = f[:-len(sci_sfx)]
-                        triplet = [base + sub_sfx, f, base + ref_sfx]
-                        if all(os.path.exists(p) for p in triplet):
-                            triplets.append(triplet)
+                for name in names:
+                    if name.endswith(sci_sfx):
+                        base = name[:-len(sci_sfx)]
+                        sub_name, ref_name = base + sub_sfx, base + ref_sfx
+                        if sub_name in names and ref_name in names:
+                            triplets.append([
+                                str(directory_path / sub_name),
+                                str(directory_path / name),
+                                str(directory_path / ref_name),
+                            ])
         self.triplets = sorted(triplets, key=lambda t: t[1])
         self._skip_classified()
         print(f"Loaded {len(self.triplets)} triplets; resuming at index {self.index}.")
