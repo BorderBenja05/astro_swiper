@@ -34,7 +34,11 @@ def main():
         print(DEFAULT_CONFIG)
         sys.exit(0)
 
-    with open(args.config) as f:
+    config_path = Path(args.config)
+    if not config_path.exists():
+        config_path = DEFAULT_CONFIG
+
+    with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
     if args.input_dir is not None:
