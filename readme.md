@@ -1,52 +1,45 @@
-# Astro Swiper — Usage
+# Astro Swiper
+
+Web-based interactive classifier for astronomical FITS image triplets. View science/difference/reference image triplets in a browser and classify them via keyboard shortcuts.
 
 ## Installation
 
 ```bash
-pip install flask flask-socketio astropy matplotlib numpy pyyaml
+pip install astro-swiper
 ```
 
 ---
 
 ## Running
 
-### 1. As a Python import (recommended)
+### 1. From the command line
+
+```bash
+asswiper /path/to/fits/triplets/          # positional input dir, uses config.yaml in cwd
+asswiper /path/to/fits/triplets/ -config my_cfg.yaml  # explicit config path
+asswiper --print-config                   # print path to the bundled default config template
+```
+
+Then open **http://localhost:5000** in a browser.
+
+**Over SSH** (no X11 needed):
+```bash
+ssh -L 5000:localhost:5000 user@host
+# then open http://localhost:5000 locally
+```
+
+### 2. As a Python import
 
 ```python
-from astro_swiper_web import AstroSwiper
+from astro_swiper import AstroSwiper
 
 AstroSwiper('config.yaml').run()
 ```
 
-### 2. With a custom triplet loader
-
-If your files don't follow the default `*scicutout / *subcutout / *refcutout` naming convention, provide a `triplet_loader` function. It receives `input_dir` from the config (or `None` if omitted) and must return a list of `[sub_path, sci_path, ref_path]` triplets.
+### 3. With an inline config dict (no file needed)
 
 ```python
-from astro_swiper_web import AstroSwiper
-
-def my_loader(input_dir):
-    # build and return your triplets however you like
-    import glob, re
-    sci_files = sorted(glob.glob(f"{input_dir}/*_science.fits"))
-    triplets = []
-    for sci in sci_files:
-        base = re.sub(r'_science\.fits$', '', sci)
-        sub  = base + '_difference.fits'
-        ref  = base + '_template.fits'
-        if os.path.exists(sub) and os.path.exists(ref):
-            triplets.append([sub, sci, ref])
-    return triplets
-
-AstroSwiper('config.yaml', triplet_loader=my_loader).run()
-```
-
-`input_dir` becomes optional in config when a loader is supplied — you can omit it entirely if your loader doesn't need it.
-
-### 4. With an inline config dict (no file needed)
-
-```python
-from astro_swiper_web import AstroSwiper
+from astro_swiper import AstroSwiper
 
 AstroSwiper({
     'input_dir': '/data/cutouts/',
@@ -65,28 +58,44 @@ AstroSwiper({
 }).run()
 ```
 
-### 5. From the command line
+### 4. With a custom triplet loader
 
-```bash
-python astro_swiper_web.py              # uses config.yaml in current directory
-python astro_swiper_web.py my_cfg.yaml  # explicit config path
+If your files don't follow the default `*scicutout / *subcutout / *refcutout` naming convention, provide a `triplet_loader` function. It receives `input_dir` from the config (or `None` if omitted) and must return a list of `[sub_path, sci_path, ref_path]` triplets.
+
+```python
+from astro_swiper import AstroSwiper
+
+def my_loader(input_dir):
+    from pathlib import Path
+    triplets = []
+    for sci in sorted(Path(input_dir).glob('*_science.fits')):
+        base = str(sci).removesuffix('_science.fits')
+        sub, ref = base + '_difference.fits', base + '_template.fits'
+        if Path(sub).exists() and Path(ref).exists():
+            triplets.append([sub, str(sci), ref])
+    return triplets
+
+AstroSwiper('config.yaml', triplet_loader=my_loader).run()
 ```
 
-Then open **http://localhost:5000** in a browser.
-
-**Over SSH** (no X11 needed):
-```bash
-ssh -L 5000:localhost:5000 user@host
-# then open http://localhost:5000 locally
-```
+`input_dir` is optional in config when a loader is supplied.
 
 ---
 
-## config.yaml reference
+## Configuration
+
+Get a copy of the default config to use as a starting point:
+
+```bash
+asswiper --print-config
+cp $(asswiper --print-config) config.yaml
+```
+
+### config.yaml reference
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `input_dir` | *(required)* | Directory containing `.fits` or `.fits.gz` cutout triplets |
+| `input_dir` | *(required)* | Directory containing `.fits` or `.fits.gz` cutout triplets. Can be overridden by the CLI positional argument. |
 | `back_button` | `left` | Key that undoes the last classification |
 | `port` | `5000` | Port the web server listens on |
 | `resume` | `true` | Skip already-classified triplets on startup |
@@ -106,7 +115,7 @@ storage:
   db: training_sets/classifications.db
 ```
 
-Single file, atomic writes, safe against crashes. Query results with pandas:
+Single file, atomic writes, safe against crashes. Query with pandas:
 
 ```python
 import sqlite3, pandas as pd
@@ -125,7 +134,7 @@ storage:
   file: training_sets/classifications.csv
 ```
 
-One row per triplet with columns `sub_path, sci_path, ref_path, label`. Easy to open in Excel or pandas:
+One row per triplet with columns `sub_path, sci_path, ref_path, label`.
 
 ```python
 import pandas as pd
@@ -146,7 +155,6 @@ One `.txt` file per category; keybind values must be **file paths** (not labels)
 keybinds:
   a: training_sets/noise.txt
   c: training_sets/skips.txt
-  ...
 ```
 
 Each file contains triplet paths, three lines per entry (sub, sci, ref).
@@ -155,7 +163,7 @@ Each file contains triplet paths, three lines per entry (sub, sci, ref).
 
 ## Input data format
 
-Each triplet is a set of three co-registered FITS cutout files sharing a common basename:
+Each triplet is three co-registered FITS cutout files sharing a common basename in a flat directory:
 
 ```
 <basename>scicutout.fits[.gz]
@@ -163,7 +171,7 @@ Each triplet is a set of three co-registered FITS cutout files sharing a common 
 <basename>refcutout.fits[.gz]
 ```
 
-All files must be in the same flat directory (`input_dir`). Both `.fits` and `.fits.gz` are supported.
+Both `.fits` and `.fits.gz` are supported.
 
 ---
 
@@ -173,7 +181,7 @@ All files must be in the same flat directory (`input_dir`). Both `.fits` and `.f
 |-----|--------|
 | *(configured keybinds)* | Classify current triplet |
 | `back_button` (default `left`) | Undo last classification |
-| `Shift+↑` | Increase contrast (narrow display window) |
-| `Shift+↓` | Decrease contrast (widen display window) |
-| `Shift+→` | Increase brightness (shift window up) |
-| `Shift+←` | Decrease brightness (shift window down) |
+| `Shift+↑` | Increase contrast (narrow display range) |
+| `Shift+↓` | Decrease contrast (widen display range) |
+| `Shift+→` | Increase brightness (shift range up) |
+| `Shift+←` | Decrease brightness (shift range down) |
