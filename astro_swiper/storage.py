@@ -50,6 +50,13 @@ class SQLiteBackend(StorageBackend):
         self._db.commit()
         return row[0]
 
+    def get_examples(self, label, n=5):
+        rows = self._db.execute(
+            "SELECT sub_path, sci_path, ref_path FROM classifications WHERE label=? LIMIT ?",
+            (label, n),
+        ).fetchall()
+        return [[r[0], r[1], r[2]] for r in rows]
+
     def clear(self):
         self._db.execute("DELETE FROM classifications")
         self._db.commit()

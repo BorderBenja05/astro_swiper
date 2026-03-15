@@ -8,6 +8,7 @@ Also accepts a pre-loaded dict instead of a path:
     AstroSwiper({'input_dir': '...', 'keybinds': {...}, ...}).run()
 """
 
+import base64
 import yaml
 from pathlib import Path
 from flask import Flask, render_template_string, request, send_file
@@ -48,6 +49,15 @@ HTML = r"""<!DOCTYPE html>
                     color: #444; text-decoration: none; }
     #title    { font-family: 'Press Start 2P', monospace; font-size: 64pt;
                 line-height: 1; margin-bottom: 12px; }
+    #gallery  { margin-top: 80px; width: 100%; max-width: 1400px; padding-bottom: 80px; }
+    .gallery-divider { color: #444; text-align: center; margin-bottom: 40px;
+                       letter-spacing: 4px; font-size: 0.85em; }
+    .gallery-category { margin-bottom: 48px; }
+    .gallery-category-title { color: #7af; font-size: 1.0em; letter-spacing: 3px;
+                               text-transform: uppercase; margin-bottom: 12px;
+                               padding-bottom: 6px; border-bottom: 1px solid #2a2a2a; }
+    .gallery-row  { display: flex; flex-direction: column; gap: 8px; }
+    .gallery-img  { width: 100%; border: 1px solid #222; display: block; }
   </style>
 </head>
 <body>
@@ -59,6 +69,11 @@ HTML = r"""<!DOCTYPE html>
   <div id="keybinds"></div>
   <div id="hint">Shift+↑↓ contrast &nbsp;|&nbsp; Shift+←→ brightness</div>
   <a id="photo-credit" href="https://www.pexels.com/photo/blue-and-purple-cosmic-sky-956999/" target="_blank">Photo by Felix Mittermeier</a>
+
+  <div id="gallery">
+    <div class="gallery-divider">── EXAMPLE GALLERY ──</div>
+    <div id="gallery-content"></div>
+  </div>
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
@@ -102,6 +117,34 @@ HTML = r"""<!DOCTYPE html>
       if (e.shiftKey && ['left','right','up','down'].includes(key)) key = 'shift+' + key;
       socket.emit('keypress', {key});
     });
+
+    (function() {
+      const labels = ['noise', 'dots', 'streaks', 'badsubs', 'dipoles'];
+      const container = document.getElementById('gallery-content');
+      labels.forEach(label => {
+        const cat = document.createElement('div');
+        cat.className = 'gallery-category';
+        const title = document.createElement('div');
+        title.className = 'gallery-category-title';
+        title.textContent = label;
+        const row = document.createElement('div');
+        row.className = 'gallery-row';
+        cat.appendChild(title);
+        cat.appendChild(row);
+        container.appendChild(cat);
+        let errored = 0;
+        for (let i = 0; i < 5; i++) {
+          const img = document.createElement('img');
+          img.className = 'gallery-img';
+          img.src = '/example/' + label + '/' + i;
+          img.onerror = function() {
+            this.style.display = 'none';
+            if (++errored === 5) cat.style.display = 'none';
+          };
+          row.appendChild(img);
+        }
+      });
+    })();
   </script>
 </body>
 </html>"""
@@ -162,6 +205,7 @@ class AstroSwiper:
         )
         self._classifier.load_directory(input_dir, triplet_loader=triplet_loader)
         self._register_routes()
+        self._generate_examples()
 
     def _register_routes(self):
         app = self._app
@@ -179,6 +223,13 @@ class AstroSwiper:
                 mimetype='image/png',
             )
 
+        @app.route('/example/<label>/<int:n>')
+        def serve_example(label, n):
+            p = Path(__file__).parent / 'imgs' / 'examples' / f'{label}_{n}.png'
+            if not p.exists():
+                return ('Not found', 404)
+            return send_file(p, mimetype='image/png')
+
         @sio.on('connect')
         def on_connect():
             kb_list = [
@@ -192,6 +243,26 @@ class AstroSwiper:
         @sio.on('keypress')
         def on_keypress(data):
             clf.handle_key(data.get('key', ''))
+
+    def _generate_examples(self, labels=('noise', 'dots', 'streaks', 'badsubs', 'dipoles')):
+        storage = self._classifier._storage
+        if not hasattr(storage, 'get_examples'):
+            return
+        examples_dir = Path(__file__).parent / 'imgs' / 'examples'
+        examples_dir.mkdir(exist_ok=True)
+        clf = self._classifier
+        for label in labels:
+            triplets = storage.get_examples(label, n=5)
+            for i, triplet in enumerate(triplets):
+                out_path = examples_dir / f'{label}_{i}.png'
+                if out_path.exists():
+                    continue
+                try:
+                    imgs = clf._load_triplet(triplet)
+                    out_path.write_bytes(base64.b64decode(clf._render(imgs)))
+                except Exception as e:
+                    print(f"Warning: could not render example {label}/{i}: {e}")
+        print("Example gallery ready.")
 
     def run(self):
         print(f"Open http://localhost:{self._port} in your browser")

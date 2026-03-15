@@ -12,9 +12,11 @@ Astro Swiper is a Python web application for interactive classification of astro
 # Install (editable / development)
 pip install -e .
 
-# Run via CLI entry point
-astro-swiper                  # uses config.yaml in cwd
-astro-swiper my_cfg.yaml      # explicit config path
+# Run via CLI entry point (registered as 'asswiper' in pyproject.toml)
+asswiper                              # uses config.yaml in cwd, falls back to bundled default
+asswiper /path/to/fits/dir            # pass input_dir positionally
+asswiper -config my_cfg.yaml          # explicit config path
+asswiper --print-config               # print path to bundled default_config.yaml template
 
 # Or as a Python import
 from astro_swiper import AstroSwiper
@@ -63,7 +65,7 @@ Browser keypress → WebSocket 'keypress' → classifier.handle_key()
 
 `config.yaml` keys:
 - `input_dir` — directory with `.fits` / `.fits.gz` triplet files
-- `back_button` — key for undo (default: `left`)
+- `back_button` — key for undo (default: `up`)
 - `port` — server port (default: `5000`)
 - `resume` — skip already-classified on startup (default: `true`)
 - `overwrite` — wipe all classifications and restart (default: `false`)
