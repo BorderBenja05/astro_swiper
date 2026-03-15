@@ -118,9 +118,10 @@ HTML = r"""<!DOCTYPE html>
       socket.emit('keypress', {key});
     });
 
-    fetch('/examples_list').then(r => r.json()).then(data => {
+    (function() {
+      const labels = ['noise', 'dots', 'streaks', 'badsubs', 'dipoles'];
       const container = document.getElementById('gallery-content');
-      Object.entries(data).forEach(([label, indices]) => {
+      labels.forEach(label => {
         const cat = document.createElement('div');
         cat.className = 'gallery-category';
         const title = document.createElement('div');
@@ -131,14 +132,19 @@ HTML = r"""<!DOCTYPE html>
         cat.appendChild(title);
         cat.appendChild(row);
         container.appendChild(cat);
-        indices.forEach(i => {
+        let errored = 0;
+        for (let i = 0; i < 5; i++) {
           const img = document.createElement('img');
           img.className = 'gallery-img';
           img.src = '/example/' + label + '/' + i;
+          img.onerror = function() {
+            this.style.display = 'none';
+            if (++errored === 5) cat.style.display = 'none';
+          };
           row.appendChild(img);
-        });
+        }
       });
-    });
+    })();
   </script>
 </body>
 </html>"""
@@ -216,20 +222,6 @@ class AstroSwiper:
                 Path(__file__).parent / 'imgs' / 'background.png',
                 mimetype='image/png',
             )
-
-        @app.route('/examples_list')
-        def examples_list():
-            from flask import jsonify
-            import re
-            d = Path(__file__).parent / 'imgs' / 'examples'
-            result = {}
-            if d.is_dir():
-                for f in sorted(d.glob('*.png')):
-                    m = re.fullmatch(r'(.+)_(\d+)', f.stem)
-                    if m:
-                        label, idx = m.group(1), int(m.group(2))
-                        result.setdefault(label, []).append(idx)
-            return jsonify(result)
 
         @app.route('/example/<label>/<int:n>')
         def serve_example(label, n):
