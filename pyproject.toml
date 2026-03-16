@@ -22,6 +22,9 @@ dependencies = [
 [project.scripts]
 asswiper = "astro_swiper._cli:main"
 
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["astro_swiper*"]
