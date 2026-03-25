@@ -15,9 +15,9 @@ pip install astro-swiper
 ### 1. From the command line
 
 ```bash
-asswiper /path/to/fits/triplets/          # positional input dir, uses config.yaml in cwd
-asswiper /path/to/fits/triplets/ -config my_cfg.yaml  # explicit config path
-asswiper --print-config                   # print path to the bundled default config template
+aswiper /path/to/fits/triplets/          # positional input dir, uses config.yaml in cwd
+aswiper /path/to/fits/triplets/ -config my_cfg.yaml  # explicit config path
+aswiper --print-config                   # print path to the bundled default config template
 ```
 
 Then open **http://localhost:5000** in a browser.
@@ -87,8 +87,8 @@ AstroSwiper('config.yaml', triplet_loader=my_loader).run()
 Get a copy of the default config to use as a starting point:
 
 ```bash
-asswiper --print-config
-cp $(asswiper --print-config) config.yaml
+aswiper --print-config
+cp $(aswiper --print-config) config.yaml
 ```
 
 ### config.yaml reference
