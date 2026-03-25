@@ -35,10 +35,10 @@ HTML = r"""<!DOCTYPE html>
            display: flex; flex-direction: column; align-items: center;
            padding: 40px 10px 10px; min-height: 100vh; }
     #status   { font-size: 1.1em; margin-bottom: 3px; min-height: 1.4em; }
-    #progress { font-size: 0.85em; color: #888; margin-bottom: 6px; min-height: 1.2em; }
+    #progress { font-size: 0.85em; color: #fff; margin-bottom: 6px; min-height: 1.2em; }
     #triplet-img { max-width: 100%; max-height: 78vh; object-fit: contain;
                    background: #000; display: block; }
-    #spinner  { display: none; font-size: 0.9em; color: #666; margin: 4px; }
+    #spinner  { display: none; font-size: 0.9em; color: #fff; margin: 4px; }
     #keybinds { display: flex; flex-wrap: wrap; justify-content: center;
                 gap: 5px; margin-top: 8px; font-size: 1.1em; }
     .kb       { background: #1e1e1e; border: 1px solid #444;
@@ -46,14 +46,14 @@ HTML = r"""<!DOCTYPE html>
     .kb b     { color: #7af; }
     #hint     { font-size: 0.95em; color: #fff; margin-top: 8px; }
     #photo-credit { position: fixed; bottom: 6px; right: 10px; font-size: 0.6em;
-                    color: #444; text-decoration: none; }
+                    color: #fff; text-decoration: none; }
     #title    { font-family: 'Press Start 2P', monospace; font-size: 64pt;
                 line-height: 1; margin-bottom: 12px; }
     #gallery  { margin-top: 80px; width: 100%; max-width: 1400px; padding-bottom: 80px; }
-    .gallery-divider { color: #444; text-align: center; margin-bottom: 40px;
-                       letter-spacing: 4px; font-size: 0.85em; }
+    .gallery-divider { color: #fff; text-align: center; margin-bottom: 40px;
+                       letter-spacing: 4px; font-size: 1.7em; }
     .gallery-category { margin-bottom: 48px; }
-    .gallery-category-title { color: #7af; font-size: 1.0em; letter-spacing: 3px;
+    .gallery-category-title { color: #7af; font-size: 2.0em; letter-spacing: 3px;
                                text-transform: uppercase; margin-bottom: 12px;
                                padding-bottom: 6px; border-bottom: 1px solid #2a2a2a; }
     .gallery-row  { display: flex; flex-direction: column; gap: 8px; }
@@ -109,14 +109,23 @@ HTML = r"""<!DOCTYPE html>
         list.map(([k, n]) => `<div class="kb"><b>${pretty(k)}</b> ${n}</div>`).join('');
     });
 
+    let _busy = false;
+    const _held = new Set();
+    socket.on('ack', () => { _busy = false; });
+
     document.addEventListener('keydown', e => {
       if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))
         e.preventDefault();
+      if (e.repeat || _busy) return;
       const arrows = {ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down'};
       let key = arrows[e.key] ?? e.key;
       if (e.shiftKey && ['left','right','up','down'].includes(key)) key = 'shift+' + key;
+      _held.add(e.key);
+      _busy = true;
       socket.emit('keypress', {key});
     });
+
+    document.addEventListener('keyup', e => { _held.delete(e.key); });
 
     (function() {
       const labels = ['noise', 'dots', 'streaks', 'badsubs', 'dipoles'];
@@ -243,6 +252,7 @@ class AstroSwiper:
         @sio.on('keypress')
         def on_keypress(data):
             clf.handle_key(data.get('key', ''))
+            emit('ack')
 
     def _generate_examples(self, labels=('noise', 'dots', 'streaks', 'badsubs', 'dipoles')):
         storage = self._classifier._storage
