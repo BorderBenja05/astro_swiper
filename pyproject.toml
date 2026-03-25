@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astro-swiper"
-version = "0.1.7"
+version = "0.1.8"
 description = "Web-based interactive FITS triplet classifier for astronomical image labelling"
 readme = "readme.md"
 license = { text = "MIT" }
@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.scripts]
-asswiper = "astro_swiper._cli:main"
+aswiper = "astro_swiper._cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
