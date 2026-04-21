@@ -12,6 +12,29 @@ mongo:
   sample_size:  500                # random sample per session; increase if you've classified a lot
   # label_field omitted — connection is read-only; SQLite resume handles skipping
 
+# ---------------------------------------------------------------------------
+# Observatory profiles — selected with:  aswiper --obs lsst   or   --obs ztf
+# Each block deep-merges over the base config above.
+# ---------------------------------------------------------------------------
+
+observatories:
+  lsst:
+    mongo:
+      collection: LSST_alerts_cutouts
+    storage:
+      backend: sqlite
+      db: training_sets/lsst_classifications.db
+
+  ztf:
+    mongo:
+      collection: ZTF_alerts_cutouts    # update to actual ZTF collection name
+      sci_field:  cutoutScience         # update field names if ZTF schema differs
+      sub_field:  cutoutDifference
+      ref_field:  cutoutTemplate
+    storage:
+      backend: sqlite
+      db: training_sets/ztf_classifications.db
+
 back_button: up
 port: 5000
 

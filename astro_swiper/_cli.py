@@ -11,6 +11,17 @@ from astro_swiper.web import AstroSwiper
 DEFAULT_CONFIG = Path(__file__).parent / 'default_config.yaml'
 
 
+def _deep_merge(base, override):
+    """Recursively merge override into base; override wins on conflicts."""
+    result = dict(base)
+    for k, v in override.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = _deep_merge(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Astro Swiper — web-based FITS triplet classifier'
@@ -22,6 +33,10 @@ def main():
     parser.add_argument(
         '-config', default='config.yaml', metavar='PATH',
         help='Path to YAML config file (default: config.yaml in cwd)',
+    )
+    parser.add_argument(
+        '--obs', default=None, metavar='NAME',
+        help='Observatory to classify (e.g. lsst, ztf). Merges observatories.<NAME> from config.',
     )
     parser.add_argument(
         '--print-config', action='store_true',
@@ -40,6 +55,16 @@ def main():
 
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
+
+    if args.obs is not None:
+        obs_cfgs = cfg.get('observatories', {})
+        if args.obs not in obs_cfgs:
+            available = list(obs_cfgs) or ['(none defined)']
+            print(f"Error: observatory '{args.obs}' not found in config. "
+                  f"Available: {available}", file=sys.stderr)
+            sys.exit(1)
+        cfg = _deep_merge(cfg, obs_cfgs[args.obs])
+        cfg['observatory'] = args.obs.upper()
 
     if args.input_dir is not None:
         cfg['input_dir'] = str(Path(args.input_dir).resolve())

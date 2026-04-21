@@ -57,6 +57,13 @@ class SQLiteBackend(StorageBackend):
         ).fetchall()
         return [[r[0], r[1], r[2]] for r in rows]
 
+    def get_stats(self):
+        total = self._db.execute("SELECT COUNT(*) FROM classifications").fetchone()[0]
+        rows  = self._db.execute(
+            "SELECT label, COUNT(*) FROM classifications GROUP BY label ORDER BY COUNT(*) DESC"
+        ).fetchall()
+        return {'total': total, 'by_label': {r[0]: r[1] for r in rows}}
+
     def clear(self):
         self._db.execute("DELETE FROM classifications")
         self._db.commit()

@@ -47,6 +47,10 @@ HTML = r"""<!DOCTYPE html>
     #hint     { font-size: 0.95em; color: #fff; margin-top: 8px; }
     #photo-credit { position: fixed; bottom: 6px; right: 10px; font-size: 0.6em;
                     color: #fff; text-decoration: none; }
+    #stats-link   { position: fixed; top: 10px; right: 10px; font-size: 0.8em;
+                    color: #7af; text-decoration: none; border: 1px solid #7af;
+                    padding: 4px 12px; border-radius: 4px; }
+    #stats-link:hover { background: #7af; color: #111; }
     #title    { font-family: 'Press Start 2P', monospace; font-size: 64pt;
                 line-height: 1; margin-bottom: 12px; }
     #gallery  { margin-top: 80px; width: 100%; max-width: 1400px; padding-bottom: 80px; }
@@ -68,6 +72,7 @@ HTML = r"""<!DOCTYPE html>
   <img id="triplet-img" src="" alt="">
   <div id="keybinds"></div>
   <div id="hint">Shift+↑↓ contrast &nbsp;|&nbsp; Shift+←→ brightness</div>
+  <a id="stats-link" href="/stats" target="_blank">Stats</a>
   <a id="photo-credit" href="https://www.pexels.com/photo/blue-and-purple-cosmic-sky-956999/" target="_blank">Photo by Felix Mittermeier</a>
 
   <div id="gallery">
@@ -159,6 +164,81 @@ HTML = r"""<!DOCTYPE html>
 </html>"""
 
 # ---------------------------------------------------------------------------
+# Stats page
+# ---------------------------------------------------------------------------
+
+STATS_HTML = r"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Astro Swiper — Stats</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111 url('/background') center top / cover no-repeat fixed;
+           color: #eee; font-family: monospace;
+           display: flex; flex-direction: column; align-items: center;
+           padding: 60px 20px; min-height: 100vh; }
+    h1   { font-family: 'Press Start 2P', monospace; font-size: 36pt;
+           margin-bottom: 16px; }
+    .obs   { font-size: 1.1em; color: #7af; letter-spacing: 4px;
+             text-transform: uppercase; margin-bottom: 32px; }
+    .total { font-size: 1.1em; color: #aaa; margin-bottom: 48px; }
+    .total span { color: #fff; font-size: 2em; display: block; margin-top: 6px; }
+    .bars  { width: 100%; max-width: 640px; }
+    .bar-row { margin-bottom: 20px; }
+    .bar-meta { display: flex; justify-content: space-between;
+                margin-bottom: 6px; font-size: 0.95em; }
+    .bar-meta .lbl { color: #7af; text-transform: uppercase; letter-spacing: 2px; }
+    .bar-meta .cnt { color: #aaa; }
+    .bar-bg   { background: #222; border-radius: 3px; height: 20px; }
+    .bar-fill { background: #7af; height: 20px; border-radius: 3px; }
+    .empty { color: #555; font-size: 1em; margin-top: 24px; }
+    .back  { margin-top: 56px; color: #7af; text-decoration: none;
+             border: 1px solid #7af; padding: 8px 24px; border-radius: 4px;
+             font-size: 0.9em; }
+    .back:hover { background: #7af; color: #111; }
+  </style>
+</head>
+<body>
+  <h1>Astro Swiper</h1>
+  <div class="obs">__OBS__</div>
+  <div class="total">unique triplets classified<span>__TOTAL__</span></div>
+  <div class="bars">__BARS__</div>
+  <a class="back" href="/">Back</a>
+</body>
+</html>"""
+
+
+def _stats_html(obs, storage):
+    if not hasattr(storage, 'get_stats'):
+        return None
+    stats = storage.get_stats()
+    total = stats['total']
+    if total == 0:
+        bars = '<div class="empty">No classifications yet.</div>'
+    else:
+        bars = ''
+        for label, count in sorted(stats['by_label'].items(), key=lambda x: -x[1]):
+            pct = count / total * 100
+            bars += (
+                f'<div class="bar-row">'
+                f'<div class="bar-meta">'
+                f'<span class="lbl">{label}</span>'
+                f'<span class="cnt">{count} &nbsp;({pct:.1f}%)</span>'
+                f'</div>'
+                f'<div class="bar-bg">'
+                f'<div class="bar-fill" style="width:{pct:.1f}%"></div>'
+                f'</div></div>'
+            )
+    return (STATS_HTML
+            .replace('__OBS__',   obs or 'Stats')
+            .replace('__TOTAL__', str(total))
+            .replace('__BARS__',  bars))
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -202,7 +282,8 @@ class AstroSwiper:
         if input_dir is None and triplet_loader is None:
             raise ValueError("config must include 'input_dir' when no triplet_loader is provided")
 
-        self._port = cfg.get('port', 5000)
+        self._port        = cfg.get('port', 5000)
+        self._observatory = cfg.get('observatory', '')
         self._app  = Flask(__name__)
         self._app.config['SECRET_KEY'] = 'astro_swiper'
         self._sio  = SocketIO(self._app, async_mode='threading', cors_allowed_origins='*')
@@ -236,6 +317,13 @@ class AstroSwiper:
                 Path(__file__).parent / 'imgs' / 'background.png',
                 mimetype='image/png',
             )
+
+        @app.route('/stats')
+        def stats_page():
+            html = _stats_html(self._observatory, clf._storage)
+            if html is None:
+                return 'Stats not available for this storage backend.', 404
+            return html
 
         @app.route('/example/<label>/<int:n>')
         def serve_example(label, n):
