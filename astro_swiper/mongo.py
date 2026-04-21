@@ -31,10 +31,6 @@ Example config.yaml:
 
     storage:
       backend: mongo           # use MongoBackend for saving classifications
-
-    keybinds:
-      r: real
-      b: bogus
 """
 
 import tempfile
