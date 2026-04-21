@@ -19,6 +19,9 @@ dependencies = [
     "tqdm>=4.0",
 ]
 
+[project.optional-dependencies]
+mongo = ["pymongo>=4.0"]
+
 [project.scripts]
 aswiper = "astro_swiper._cli:main"
 

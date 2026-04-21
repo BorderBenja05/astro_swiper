@@ -194,6 +194,11 @@ class AstroSwiper:
             cfg = dict(config)
 
         input_dir = cfg.get('input_dir')
+
+        if triplet_loader is None and 'mongo' in cfg:
+            from astro_swiper.mongo import MongoTripletLoader
+            triplet_loader = MongoTripletLoader(cfg['mongo'])
+
         if input_dir is None and triplet_loader is None:
             raise ValueError("config must include 'input_dir' when no triplet_loader is provided")
 

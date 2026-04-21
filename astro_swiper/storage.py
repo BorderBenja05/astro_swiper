@@ -147,4 +147,7 @@ def make_backend(cfg, keybinds) -> StorageBackend:
                 'already_classified', 'training_sets/already_classified.txt'
             ),
         )
-    raise ValueError(f"Unknown storage backend '{backend}'. Choose sqlite, csv, or txt.")
+    elif backend == 'mongo':
+        from astro_swiper.mongo import MongoBackend
+        return MongoBackend(cfg.get('mongo', {}))
+    raise ValueError(f"Unknown storage backend '{backend}'. Choose sqlite, csv, txt, or mongo.")
