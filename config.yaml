@@ -1,4 +1,15 @@
-input_dir: /mnt/waz/nas/turbo/pipeline/rb_cutouts/2026-03-12/
+input_dir: ~   # not needed; triplets are loaded from MongoDB below
+
+mongo:
+  uri:          "mongodb://readonly:qabhyk-tuzJeq-fegju6@localhost:27016/boom?authSource=boom"
+  database:     boom
+  collection:   LSST_alerts_cutouts
+  sci_field:    cutoutScience
+  sub_field:    cutoutDifference
+  ref_field:    cutoutTemplate
+  use_embedded: true               # fields contain raw FITS bytes, not file paths
+  temp_dir:     /tmp/astro_swiper_cache
+  # label_field omitted — connection is read-only; SQLite resume handles skipping
 
 back_button: up
 port: 5000
