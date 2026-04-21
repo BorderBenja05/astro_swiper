@@ -9,6 +9,7 @@ mongo:
   ref_field:    cutoutTemplate
   use_embedded: true               # fields contain raw FITS bytes, not file paths
   temp_dir:     /tmp/astro_swiper_cache
+  sample_size:  500                # random sample per session; increase if you've classified a lot
   # label_field omitted — connection is read-only; SQLite resume handles skipping
 
 back_button: up

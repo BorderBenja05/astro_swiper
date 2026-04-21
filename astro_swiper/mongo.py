@@ -28,6 +28,7 @@ Example config.yaml (LSST embedded binary, read-only connection):
       ref_field:    cutoutTemplate
       use_embedded: true
       temp_dir:     /tmp/astro_swiper_cache
+      sample_size:  500            # uses $sample; set 0 to fetch all (slow on large collections)
       # label_field omitted → no MongoDB-side filtering; SQLite resume handles it
 
     storage:
@@ -74,6 +75,7 @@ class MongoTripletLoader:
         self._use_gridfs   = cfg.get('use_gridfs',   False)
         self._use_embedded = cfg.get('use_embedded', False)
         self._extra_query  = cfg.get('query',        {})
+        self._sample_size  = cfg.get('sample_size',  500)
 
         self._client = pm.MongoClient(uri)
         self._col    = self._client[cfg['database']][cfg['collection']]
@@ -92,7 +94,12 @@ class MongoTripletLoader:
         query = dict(self._extra_query)
         if self._label_field is not None:
             query[self._label_field] = None
-        docs = list(self._col.find(query))
+
+        if self._sample_size:
+            pipeline = [{'$match': query}, {'$sample': {'size': self._sample_size}}]
+            docs = list(self._col.aggregate(pipeline))
+        else:
+            docs = list(self._col.find(query))
 
         if self._use_embedded:
             return [self._resolve_embedded(doc) for doc in docs]
