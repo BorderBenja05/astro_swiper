@@ -1,0 +1,2 @@
+[console_scripts]
+aswiper = astro_swiper._cli:main

@@ -16,12 +16,13 @@ import matplotlib.gridspec as gridspec
 
 class TripletClassifier:
     def __init__(self, keybinds, back_button, storage, socketio,
-                 resume=True, overwrite=False):
+                 resume=True, overwrite=False, metadata=None):
         self.keybinds    = keybinds
         self.back_button = back_button
         self.resume      = resume
         self._storage    = storage
         self._socketio   = socketio   # injected — no module-level global needed
+        self.metadata    = metadata or {}   # sci_path → {fwhm, drb, rb, ...}
 
         self.triplets = []
         self.index    = 0
@@ -134,6 +135,7 @@ class TripletClassifier:
             'image':    self._get_b64(),
             'filename': Path(triplet[1]).name,
             'progress': f'{self.index + 1} / {len(self.triplets)}',
+            'metadata': self.metadata.get(triplet[1], {}),
         }
         self._socketio.emit('update', payload, to=to) if to else \
             self._socketio.emit('update', payload)

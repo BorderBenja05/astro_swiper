@@ -1,0 +1,10 @@
+flask>=2.0
+flask-socketio>=5.0
+astropy>=5.0
+matplotlib>=3.5
+numpy>=1.21
+pyyaml>=6.0
+tqdm>=4.0
+
+[mongo]
+pymongo>=4.0

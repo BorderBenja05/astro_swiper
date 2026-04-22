@@ -3,14 +3,22 @@ input_dir: ~   # not needed; triplets are loaded from MongoDB below
 mongo:
   uri:          "mongodb://readonly:qabhyk-tuzJeq-fegju6@localhost:27016/boom?authSource=boom"
   database:     boom
-  collection:   LSST_alerts_cutouts
+  collection:   ZTF_alerts_cutouts
   sci_field:    cutoutScience
   sub_field:    cutoutDifference
   ref_field:    cutoutTemplate
   use_embedded: true               # fields contain raw FITS bytes, not file paths
-  temp_dir:     /tmp/astro_swiper_cache
+  temp_dir:     ~/astro_swiper_cache
   sample_size:  500                # random sample per session; increase if you've classified a lot
   # label_field omitted — connection is read-only; SQLite resume handles skipping
+  # Resume keyed on objectId, not Mongo _id — so every alert for the same object
+  # is treated as classified once any one of them is.  ZTF_alerts_cutouts has no
+  # objectId field, so pull it in from ZTF_alerts via $lookup.
+  object_id_field: objectId
+  object_id_lookup:
+    from:          ZTF_alerts
+    local_field:   _id
+    foreign_field: _id
 
 # ---------------------------------------------------------------------------
 # Observatory profiles — selected with:  aswiper --obs lsst   or   --obs ztf

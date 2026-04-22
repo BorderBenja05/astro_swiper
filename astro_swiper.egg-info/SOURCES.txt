@@ -1,0 +1,17 @@
+pyproject.toml
+readme.md
+setup.py
+astro_swiper/__init__.py
+astro_swiper/_cli.py
+astro_swiper/classifier.py
+astro_swiper/default_config.yaml
+astro_swiper/mongo.py
+astro_swiper/storage.py
+astro_swiper/web.py
+astro_swiper.egg-info/PKG-INFO
+astro_swiper.egg-info/SOURCES.txt
+astro_swiper.egg-info/dependency_links.txt
+astro_swiper.egg-info/entry_points.txt
+astro_swiper.egg-info/requires.txt
+astro_swiper.egg-info/top_level.txt
+astro_swiper/imgs/background.png

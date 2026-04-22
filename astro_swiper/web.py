@@ -36,6 +36,9 @@ HTML = r"""<!DOCTYPE html>
            padding: 40px 10px 10px; min-height: 100vh; }
     #status   { font-size: 1.1em; margin-bottom: 3px; min-height: 1.4em; }
     #progress { font-size: 0.85em; color: #fff; margin-bottom: 6px; min-height: 1.2em; }
+    #metadata { font-size: 0.95em; color: #fff; margin-bottom: 6px; min-height: 1.2em;
+                display: flex; gap: 16px; justify-content: center; }
+    #metadata span b { color: #7af; }
     #triplet-img { max-width: 100%; max-height: 78vh; object-fit: contain;
                    background: #000; display: block; }
     #spinner  { display: none; font-size: 0.9em; color: #fff; margin: 4px; }
@@ -68,6 +71,7 @@ HTML = r"""<!DOCTYPE html>
   <div id="title">Astro Swiper</div>
   <div id="status">Connecting…</div>
   <div id="progress"></div>
+  <div id="metadata"></div>
   <div id="spinner">Rendering…</div>
   <img id="triplet-img" src="" alt="">
   <div id="keybinds"></div>
@@ -86,8 +90,13 @@ HTML = r"""<!DOCTYPE html>
     const imgEl    = document.getElementById('triplet-img');
     const statusEl = document.getElementById('status');
     const progEl   = document.getElementById('progress');
+    const metaEl   = document.getElementById('metadata');
     const spinEl   = document.getElementById('spinner');
     const kbEl     = document.getElementById('keybinds');
+
+    const fmtNum  = v => (v == null || Number.isNaN(+v)) ? '—' : (+v).toFixed(3);
+    const fmtBool = v => v == null ? '<span style="color:#888">—</span>'
+                                   : `<span style="color:${v ? '#7f7' : '#f77'}">${v ? 'true' : 'false'}</span>`;
 
     socket.on('connect',    () => { statusEl.textContent = 'Connected — loading…'; });
     socket.on('disconnect', () => { statusEl.textContent = 'Disconnected.'; });
@@ -97,12 +106,24 @@ HTML = r"""<!DOCTYPE html>
       imgEl.src = 'data:image/png;base64,' + d.image;
       statusEl.textContent  = d.filename;
       progEl.textContent    = d.progress;
+      const m = d.metadata || {};
+      const hasMeta = ['fwhm','drb','rb','rock','star','near_brightstar','stationary']
+        .some(k => m[k] != null);
+      metaEl.innerHTML = hasMeta
+        ? `<span><b>fwhm</b> ${fmtNum(m.fwhm)}</span>`
+        + `<span><b>drb</b> ${fmtNum(m.drb)}</span>`
+        + `<span><b>rb</b> ${fmtNum(m.rb)}</span>`
+        + `<span><b>rock</b> ${fmtBool(m.rock)}</span>`
+        + `<span><b>star</b> ${fmtBool(m.star)}</span>`
+        + `<span><b>near_brightstar</b> ${fmtBool(m.near_brightstar)}</span>`
+        + `<span><b>stationary</b> ${fmtBool(m.stationary)}</span>`
+        : '';
       spinEl.style.display  = 'none';
     });
 
     socket.on('done', d => {
       statusEl.textContent = '✓ ' + d.message;
-      imgEl.src = ''; progEl.textContent = '';
+      imgEl.src = ''; progEl.textContent = ''; metaEl.innerHTML = '';
       spinEl.style.display = 'none';
     });
 
@@ -297,6 +318,7 @@ class AstroSwiper:
             socketio=self._sio,
             resume=cfg.get('resume', True),
             overwrite=cfg.get('overwrite', False),
+            metadata=getattr(triplet_loader, 'metadata', None),
         )
         self._classifier.load_directory(input_dir, triplet_loader=triplet_loader)
         self._register_routes()

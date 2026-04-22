@@ -42,6 +42,17 @@ def main():
         '--print-config', action='store_true',
         help='Print the path to the bundled default config template and exit',
     )
+    cheat = parser.add_mutually_exclusive_group()
+    cheat.add_argument(
+        '-cheat_real', action='store_true',
+        help='Only sample alerts with candidate.rb > 0.9 and candidate.drb > 0.9 '
+             '(requires mongo.object_id_lookup pointing at the alerts collection).',
+    )
+    cheat.add_argument(
+        '-cheat_fake', action='store_true',
+        help='Only sample alerts with candidate.rb < 0.4 and candidate.drb < 0.4 '
+             '(requires mongo.object_id_lookup pointing at the alerts collection).',
+    )
 
     args = parser.parse_args()
 
@@ -68,5 +79,10 @@ def main():
 
     if args.input_dir is not None:
         cfg['input_dir'] = str(Path(args.input_dir).resolve())
+
+    if args.cheat_real:
+        cfg.setdefault('mongo', {})['cheat_real'] = True
+    if args.cheat_fake:
+        cfg.setdefault('mongo', {})['cheat_fake'] = True
 
     AstroSwiper(cfg).run()
