@@ -27,6 +27,10 @@ def main():
         '--print-config', action='store_true',
         help='Print the path to the bundled default config template and exit',
     )
+    parser.add_argument(
+        '-p', '--port', type=int, default=None, metavar='PORT',
+        help='Port to run the server on (overrides config)',
+    )
 
     args = parser.parse_args()
 
@@ -43,5 +47,8 @@ def main():
 
     if args.input_dir is not None:
         cfg['input_dir'] = str(Path(args.input_dir).resolve())
+
+    if args.port is not None:
+        cfg['port'] = args.port
 
     AstroSwiper(cfg).run()
